@@ -1,1 +1,1 @@
-module wb/adsgolib
+module tools/adsgolib
