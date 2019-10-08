@@ -1,4 +1,4 @@
-package middlewares
+package middleware
 
 type key int
 

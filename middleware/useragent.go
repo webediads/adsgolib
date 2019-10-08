@@ -1,4 +1,4 @@
-package middlewares
+package middleware
 
 // The original work was derived from Goji's middleware, source:
 // https://github.com/zenazn/goji/tree/master/web/middleware
