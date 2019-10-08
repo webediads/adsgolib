@@ -1,1 +1,1 @@
-module tools/adsgolib
+module git.webedia-group.net/tools/adsgolib
