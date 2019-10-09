@@ -36,6 +36,15 @@ func (config *Config) Get(section string, key string) (string, error) {
 	return val.String(), nil
 }
 
+// GetUnsafe returns the value of a key (as a string)
+func (config *Config) GetUnsafe(section string, key string) string {
+	val, err := config.cfg.Section(section).GetKey(key)
+	if err != nil {
+		panic("Config section: '" + section + "', key: '" + key + "' does not exist")
+	}
+	return val.String()
+}
+
 // GetArray returns an array of values from a key (as a array of string)
 func (config *Config) GetArray(section string, key string) ([]string, error) {
 	val, err := config.cfg.Section(section).GetKey(key)

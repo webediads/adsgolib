@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	config "git.webedia-group.net/tools/adsgolib/config"
 	middleware "git.webedia-group.net/tools/adsgolib/middleware"
 
 	gelf "github.com/robertkowalski/graylog-golang"
@@ -54,17 +55,37 @@ var logLevels = map[string]int{
 }
 
 // Init will instantiate our logger, setup the graylog connection
-func (logger *Logger) Init(graylogIPStr string, graylogPortStr string, appName string, appGroupName string) error {
-	graylogPort, err := strconv.Atoi(graylogPortStr)
+func (logger *Logger) Init( /*graylogIPStr string, graylogPortStr string, appName string, appGroupName string*/ ) error {
+
+	graylogIPFromCfg, err := config.Get("log", "graylog.ip")
+	if err != nil {
+		panic("graylog.ip is required in the config")
+	}
+	graylogPortFromCfg, err := config.Get("log", "graylog.port")
+	if err != nil {
+		panic("graylog.ip is required in the config")
+	}
+
+	appNameFromConfig, err := config.Get("log", "app")
+	if err != nil {
+		panic("app name is required in the config")
+	}
+
+	appGroupNameFromConfig, err := config.Get("log", "appGroup")
+	if err != nil {
+		panic("app group name is required in the config")
+	}
+
+	graylogPort, err := strconv.Atoi(graylogPortFromCfg)
 	if err != nil {
 		return err
 	}
 	logger.graylog = gelf.New(gelf.Config{
-		GraylogHostname: graylogIPStr,
+		GraylogHostname: graylogIPFromCfg,
 		GraylogPort:     graylogPort,
 	})
-	logger.appName = appName
-	logger.appGroupName = appGroupName
+	logger.appName = appNameFromConfig
+	logger.appGroupName = appGroupNameFromConfig
 	return nil
 }
 
