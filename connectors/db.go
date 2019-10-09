@@ -17,11 +17,11 @@ var dbOnceMutex sync.Mutex
 
 // DbSettings is the struct that is used for registering a connection
 type DbSettings struct {
-	username string
-	password string
-	host     string
-	port     string
-	database string
+	Username string
+	Password string
+	Host     string
+	Port     string
+	Database string
 }
 
 var allDbSettings map[string]DbSettings
@@ -54,15 +54,15 @@ func Db(name string) *sql.DB {
 	if !dbOnce[name] {
 		dbOnce[name] = true
 		connectionStringArr := []string{
-			dbSettings.username,
+			dbSettings.Username,
 			":",
-			dbSettings.password,
+			dbSettings.Password,
 			"@(",
-			dbSettings.host,
+			dbSettings.Host,
 			":",
-			dbSettings.port,
+			dbSettings.Port,
 			")/",
-			dbSettings.database,
+			dbSettings.Database,
 			"?parseTime=true",
 		}
 		dbConnections[name], _ = sql.Open("mysql", strings.Join(connectionStringArr, ""))
