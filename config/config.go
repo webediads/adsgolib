@@ -16,7 +16,16 @@ type wrapper struct {
 }
 
 // Config is our application Wrapper object
-var Config = &wrapper{}
+var Config = wrapper{}
+
+// Test sucks
+func Test() {
+	fmt.Println("haha")
+}
+
+func (config wrapper) Test2() {
+	fmt.Println("haha 2")
+}
 
 // ReadConfigFile reads the ini file
 func (config *wrapper) ReadConfigFile(baseFolder string, envFlag string) error {
@@ -67,4 +76,12 @@ func (config *wrapper) GetPrefixedMap(section string, prefix string) map[string]
 		}
 	}
 	return output
+}
+
+func (config *wrapper) SetEnvironment(environment string) {
+	config.environment = environment
+}
+
+func (config *wrapper) GetEnvironment() string {
+	return config.environment
 }
