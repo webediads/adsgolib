@@ -1,0 +1,63 @@
+package connectors
+
+import (
+	"fmt"
+	"log"
+	"os"
+	"sync"
+	common "wb/adslog/common"
+
+	"github.com/bradfitz/gomemcache/memcache"
+)
+
+var memcacheConnections map[string]*MemcacheConnection
+var memcacheOnce map[string]bool
+var memcacheOnceMutex sync.Mutex
+
+// MemcacheConnection is our abstraction to memcache.Client
+type MemcacheConnection struct {
+	client *memcache.Client
+}
+
+// Memcache returns a memcache client connection
+func Memcache(name string) *MemcacheConnection {
+
+	if name == "" {
+		log.Println("Memcache's name cannot be empty")
+		return nil
+	}
+
+	if len(memcacheOnce) == 0 {
+		memcacheOnce = make(map[string]bool, 15)
+		memcacheConnections = make(map[string]*MemcacheConnection, 15)
+	}
+
+	memcacheOnceMutex.Lock()
+	if !memcacheOnce[name] {
+		memcacheOnce[name] = true
+		mcConnection := new(MemcacheConnection)
+		memcacheHostsFromConfig, err := common.GetApp().Config.GetArray("cache", "memcache.global")
+		if err != nil {
+			fmt.Println("Memcache hosts/ports cannot be empty")
+			os.Exit(1)
+		}
+		memcacheClient := memcache.New(memcacheHostsFromConfig...)
+		mcConnection.client = memcacheClient
+		memcacheConnections[name] = mcConnection
+		memcacheOnceMutex.Unlock()
+	} else {
+		memcacheOnceMutex.Unlock()
+	}
+
+	return memcacheConnections[name]
+}
+
+// Store stores a value
+func (memcacheConnection MemcacheConnection) Store(key string, value []byte) {
+	memcacheConnection.client.Set(&memcache.Item{Key: key, Value: []byte(value)})
+}
+
+// GetClient returns the original Memcache client
+func (memcacheConnection MemcacheConnection) GetClient() *memcache.Client {
+	return memcacheConnection.client
+}

@@ -1,0 +1,77 @@
+package connectors
+
+import (
+	"sync"
+	"time"
+	common "wb/adslog/common"
+
+	"github.com/go-redis/redis"
+)
+
+var redisConnections map[string]*RedisConnection
+var redisOnce map[string]bool
+var redisOnceMutex sync.Mutex
+
+// dialTimeout is the timeout for establishing new connections
+const dialTimeout = 200 * time.Millisecond
+
+// dialTimeout is the timeout for socket reads
+const readTimeout = 1000 * time.Millisecond
+
+// dialTimeout is the timeout for socket writess
+const writeTimeout = 1000 * time.Millisecond
+
+const maxConnAge = 200 * time.Millisecond
+const poolTimeout = 200 * time.Millisecond
+
+// RedisConnection is our abstraction to redis.Client
+type RedisConnection struct {
+	client *redis.ClusterClient
+}
+
+// Redis returns a redis client connection
+func Redis(name string) *RedisConnection {
+
+	if name == "" {
+		panic("Redis's connection name cannot be empty")
+	}
+
+	if len(redisOnce) == 0 {
+		redisOnce = make(map[string]bool, 15)
+		redisConnections = make(map[string]*RedisConnection, 15)
+	}
+
+	redisOnceMutex.Lock()
+	if !redisOnce[name] {
+		redisOnce[name] = true
+		rdConnection := new(RedisConnection)
+		rdConfigEntries := common.GetApp().Config.GetPrefixedMap("redis", name)
+		if len(rdConfigEntries) == 0 {
+			panic("This redis cluster could not be found in the config: " + name)
+		}
+		var rdConfigServers []string
+		for _, rdConfigEntry := range rdConfigEntries {
+			rdConfigServers = append(rdConfigServers, rdConfigEntry)
+		}
+		redisClient := redis.NewClusterClient(&redis.ClusterOptions{
+			Addrs:        rdConfigServers,
+			DialTimeout:  dialTimeout,
+			ReadTimeout:  readTimeout,
+			WriteTimeout: writeTimeout,
+			// MaxConnAge:   maxConnAge,
+			// PoolTimeout:  poolTimeout,
+		})
+		rdConnection.client = redisClient
+		redisConnections[name] = rdConnection
+		redisOnceMutex.Unlock()
+	} else {
+		redisOnceMutex.Unlock()
+	}
+
+	return redisConnections[name]
+}
+
+// GetClient returns the original redis client
+func (redisConnection RedisConnection) GetClient() *redis.ClusterClient {
+	return redisConnection.client
+}

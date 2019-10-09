@@ -18,15 +18,6 @@ type wrapper struct {
 // Config is our application Wrapper object
 var Config = wrapper{}
 
-// Test sucks
-func Test() {
-	fmt.Println("haha")
-}
-
-func (config wrapper) Test2() {
-	fmt.Println("haha 2")
-}
-
 // ReadConfigFile reads the ini file
 func (config *wrapper) ReadConfigFile(baseFolder string, envFlag string) error {
 	var err error
@@ -50,11 +41,11 @@ func (config *wrapper) Get(section string, key string) (string, error) {
 
 // GetUnsafe returns the value of a key (as a string)
 func (config *wrapper) GetUnsafe(section string, key string) string {
-	val, err := config.cfg.Section(section).GetKey(key)
+	val, err := config.Get(section, key)
 	if err != nil {
 		panic("Config section: '" + section + "', key: '" + key + "' does not exist")
 	}
-	return val.String()
+	return val
 }
 
 // GetArray returns an array of values from a key (as a array of string)
