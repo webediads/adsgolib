@@ -11,19 +11,21 @@ import (
 	"strconv"
 	"strings"
 
-	config "git.webedia-group.net/tools/adsgolib/config"
 	middleware "git.webedia-group.net/tools/adsgolib/middleware"
 
 	gelf "github.com/robertkowalski/graylog-golang"
 )
 
-// Logger is a struct containing the required resources for logging to screen/logfile/remote syslog
-type Logger struct {
+// Wrapper is a struct containing the required resources for logging to screen/logfile/remote syslog
+type wrapper struct {
 	realLogger   log.Logger
 	graylog      *gelf.Gelf
 	appName      string
 	appGroupName string
 }
+
+// Logger is our application Wrapper object
+var Logger = &wrapper{}
 
 type errorGelf struct {
 	App          string `json:"app"`
@@ -55,42 +57,22 @@ var logLevels = map[string]int{
 }
 
 // Init will instantiate our logger, setup the graylog connection
-func (logger *Logger) Init( /*graylogIPStr string, graylogPortStr string, appName string, appGroupName string*/ ) error {
-
-	graylogIPFromCfg, err := config.Get("log", "graylog.ip")
-	if err != nil {
-		panic("graylog.ip is required in the config")
-	}
-	graylogPortFromCfg, err := config.Get("log", "graylog.port")
-	if err != nil {
-		panic("graylog.ip is required in the config")
-	}
-
-	appNameFromConfig, err := config.Get("log", "app")
-	if err != nil {
-		panic("app name is required in the config")
-	}
-
-	appGroupNameFromConfig, err := config.Get("log", "appGroup")
-	if err != nil {
-		panic("app group name is required in the config")
-	}
-
-	graylogPort, err := strconv.Atoi(graylogPortFromCfg)
+func (logger *wrapper) Init(graylogIPStr string, graylogPortStr string, appName string, appGroupName string) error {
+	graylogPort, err := strconv.Atoi(graylogPortStr)
 	if err != nil {
 		return err
 	}
 	logger.graylog = gelf.New(gelf.Config{
-		GraylogHostname: graylogIPFromCfg,
+		GraylogHostname: graylogIPStr,
 		GraylogPort:     graylogPort,
 	})
-	logger.appName = appNameFromConfig
-	logger.appGroupName = appGroupNameFromConfig
+	logger.appName = appName
+	logger.appGroupName = appGroupName
 	return nil
 }
 
 // Critical is used for errors that cannot be recovered
-func (logger *Logger) Critical(msg string, w http.ResponseWriter, r *http.Request) error {
+func (logger *wrapper) Critical(msg string, w http.ResponseWriter, r *http.Request) error {
 	logger.sendToGraylog(msg, r)
 	if w != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -100,7 +82,7 @@ func (logger *Logger) Critical(msg string, w http.ResponseWriter, r *http.Reques
 }
 
 // Error is used for errors that cannot be recovered but we can still live with them
-func (logger *Logger) Error(msg string, w http.ResponseWriter, r *http.Request) error {
+func (logger *wrapper) Error(msg string, w http.ResponseWriter, r *http.Request) error {
 	logger.sendToGraylog(msg, r)
 	if w != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -110,7 +92,7 @@ func (logger *Logger) Error(msg string, w http.ResponseWriter, r *http.Request) 
 }
 
 // NotFound is used when a content or corresponding value was not found
-func (logger *Logger) NotFound(msg string, w http.ResponseWriter, r *http.Request) error {
+func (logger *wrapper) NotFound(msg string, w http.ResponseWriter, r *http.Request) error {
 	logger.sendToGraylog(msg, r)
 	if w != nil {
 		w.WriteHeader(http.StatusNotFound)
@@ -120,25 +102,25 @@ func (logger *Logger) NotFound(msg string, w http.ResponseWriter, r *http.Reques
 }
 
 // Warning is used for errors that have been recovered
-func (logger *Logger) Warning(msg string, w http.ResponseWriter, r *http.Request) error {
+func (logger *wrapper) Warning(msg string, w http.ResponseWriter, r *http.Request) error {
 	logger.sendToGraylog(msg, r)
 	return nil
 }
 
 // Notice is mainly used internally for debugging to console
-func (logger *Logger) Notice(msg string, w http.ResponseWriter, r *http.Request) error {
+func (logger *wrapper) Notice(msg string, w http.ResponseWriter, r *http.Request) error {
 	logger.sendToGraylog(msg, r)
 	return nil
 }
 
 // Debug is mainly used internally for debugging to console
-func (logger *Logger) Debug(msg string, w http.ResponseWriter, r *http.Request) error {
+func (logger *wrapper) Debug(msg string, w http.ResponseWriter, r *http.Request) error {
 	logger.sendToGraylog(msg, r)
 	return nil
 }
 
 // sendToGraylog formats and sends a message to graylog along with the filename, line number, etc
-func (logger *Logger) sendToGraylog(msg string, r *http.Request) {
+func (logger *wrapper) sendToGraylog(msg string, r *http.Request) {
 	pc, _, _, ok1 := runtime.Caller(1)
 	details := runtime.FuncForPC(pc)
 	if ok1 && details != nil {
