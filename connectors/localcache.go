@@ -1,18 +1,13 @@
-package connectors
+package wconnectors
 
 // fork from https://github.com/facebookarchive/inmem/blob/master/inmem.go
 
 import (
-	"fmt"
-	"log"
-	"os"
 	"reflect"
 	"sync"
 
 	"container/list"
-	"strconv"
 	"time"
-	common "wb/adslog/common"
 )
 
 // Cache of things.
@@ -172,42 +167,39 @@ var cacheConnections map[string]Cache
 var cacheOnce map[string]bool
 var cacheOnceMutex sync.Mutex
 
+// LocalCacheSettings is the struct that is used for registering a connection
+type LocalCacheSettings struct {
+	Size int
+	TTL  int
+}
+
+var allLocalCacheSettings = make(map[string]LocalCacheSettings)
+
+// RegisterLocalCache registers a db connection
+func RegisterLocalCache(name string, settings LocalCacheSettings) {
+	allLocalCacheSettings[name] = settings
+}
+
 // LocalCache return a cache
 func LocalCache(name string) Cache {
 
 	if name == "" {
-		log.Println("Cache's name cannot be empty")
-		return nil
+		panic("LocalCache's name cannot be empty")
 	}
+
+	localCacheSettings, ok := allLocalCacheSettings[name]
+	if !ok {
+		panic("This LocalCache '" + name + "' was not registered")
+	}
+
 	if len(cacheOnce) == 0 {
-
-		maxCacheFromConfig, err := common.GetApp().Config.Get("cache", "localcache.maxCacheNumber")
-		if err != nil {
-			fmt.Println("LocalCache maxCacheNumber cannot be empty")
-			os.Exit(1)
-		}
-
-		maxCache, _ := strconv.Atoi(maxCacheFromConfig)
-		cacheOnce = make(map[string]bool, maxCache)
-		cacheConnections = make(map[string]Cache, maxCache)
+		cacheOnce = make(map[string]bool, 50)
+		cacheConnections = make(map[string]Cache, 50)
 	}
 	cacheOnceMutex.Lock()
 	if !cacheOnce[name] {
-
-		cacheSizeFromConfig, err := common.GetApp().Config.Get("cache", "localcache."+name+".size")
-		if err != nil {
-			fmt.Println("LocalCache cacheSizeFromConfig cannot be empty")
-			os.Exit(1)
-		}
-		cacheTTLFromConfig, err := common.GetApp().Config.Get("cache", "localcache."+name+".ttl")
-		if err != nil {
-			fmt.Println("LocalCache cacheTTLFromConfig cannot be empty")
-			os.Exit(1)
-		}
-		size, _ := strconv.Atoi(cacheSizeFromConfig)
-		ttl, _ := strconv.Atoi(cacheTTLFromConfig)
 		cacheOnce[name] = true
-		cacheConnections[name] = NewLocked(size, ttl)
+		cacheConnections[name] = NewLocked(localCacheSettings.Size, localCacheSettings.TTL)
 	}
 	cacheOnceMutex.Unlock()
 	return cacheConnections[name]

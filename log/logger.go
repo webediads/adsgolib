@@ -1,4 +1,4 @@
-package log
+package wlog
 
 import (
 	"encoding/json"

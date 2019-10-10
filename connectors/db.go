@@ -1,4 +1,4 @@
-package connectors
+package wconnectors
 
 import (
 	"database/sql"
@@ -24,11 +24,11 @@ type DbSettings struct {
 	Database string
 }
 
-var allDbSettings map[string]DbSettings
+var allDbSettings = make(map[string]DbSettings)
 
 // RegisterDb registers a db connection
-func RegisterDb(name string, dbSettings DbSettings) {
-	allDbSettings[name] = dbSettings
+func RegisterDb(name string, settings DbSettings) {
+	allDbSettings[name] = settings
 }
 
 // Db returns a connection
@@ -36,13 +36,11 @@ func Db(name string) *sql.DB {
 
 	if name == "" {
 		panic("DB name cannot be empty")
-		return nil
 	}
 
 	dbSettings, ok := allDbSettings[name]
 	if !ok {
 		panic("This DB '" + name + "' was not registered")
-		return nil
 	}
 
 	if len(dbOnce) == 0 {
