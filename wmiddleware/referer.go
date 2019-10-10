@@ -7,7 +7,7 @@ import (
 )
 
 // Referer implements the check of the request params against their hash
-func Referer(contextKeyReferer key) func(next http.Handler) http.Handler {
+func Referer(contextKeyReferer wcontext.Key) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 

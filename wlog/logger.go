@@ -11,8 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	middleware "git.webedia-group.net/tools/adsgolib/middleware"
-
+	"git.webedia-group.net/tools/adsgolib/wcontext"
 	gelf "github.com/robertkowalski/graylog-golang"
 )
 
@@ -155,9 +154,9 @@ func (logger *Wrapper) sendToGraylog(msg string, r *http.Request) {
 
 				if r != nil {
 					ctx := r.Context()
-					logIP, _ = ctx.Value(middleware.ContextKeyRequestIP).(string)
-					logReferer, _ = ctx.Value(middleware.ContextKeyReferer).(string)
-					logUserAgent, _ = ctx.Value(middleware.ContextKeyUserAgent).(string)
+					logIP, _ = ctx.Value(wcontext.ContextKeyRequestIP).(string)
+					logReferer, _ = ctx.Value(wcontext.ContextKeyReferer).(string)
+					logUserAgent, _ = ctx.Value(wcontext.ContextKeyUserAgent).(string)
 					logURL = r.URL.RequestURI()
 				}
 

@@ -9,7 +9,7 @@ import (
 )
 
 // UserAgent stores the useragent in the context for easier use
-func UserAgent(contextKeyUserAgent key) func(next http.Handler) http.Handler {
+func UserAgent(contextKeyUserAgent wcontext.Key) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 

@@ -6,7 +6,7 @@ import (
 )
 
 // RequestIP handles reading the input data and sets the IP of the request in the context
-func RequestIP(contextKeyIP key) func(next http.Handler) http.Handler {
+func RequestIP(contextKeyIP wcontext.Key) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()

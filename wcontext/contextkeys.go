@@ -1,12 +1,13 @@
-package wmiddleware
+package wcontext
 
-type key int
+// Key is our
+type Key int
 
 // ContextKeyRequestIP is the context key for our middleware that adds the request ip
-var ContextKeyRequestIP = key(1)
+var ContextKeyRequestIP = Key(1)
 
 // ContextKeyReferer is the context key for our middleware that adds the referer
-var ContextKeyReferer = key(2)
+var ContextKeyReferer = Key(2)
 
 // ContextKeyUserAgent is the context key for our middleware that adds the user agent
-var ContextKeyUserAgent = key(3)
+var ContextKeyUserAgent = Key(3)
