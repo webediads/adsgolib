@@ -17,7 +17,7 @@ import (
 )
 
 // Wrapper is a struct containing the required resources for logging to screen/logfile/remote syslog
-type wrapper struct {
+type Wrapper struct {
 	realLogger   log.Logger
 	graylog      *gelf.Gelf
 	appName      string
@@ -25,7 +25,7 @@ type wrapper struct {
 }
 
 // Logger is our application Wrapper object
-var Logger = &wrapper{}
+var Logger = &Wrapper{}
 
 type errorGelf struct {
 	App          string `json:"app"`
@@ -57,7 +57,7 @@ var logLevels = map[string]int{
 }
 
 // Init will instantiate our logger, setup the graylog connection
-func (logger *wrapper) Init(graylogIPStr string, graylogPortStr string, appName string, appGroupName string) error {
+func (logger *Wrapper) Init(graylogIPStr string, graylogPortStr string, appName string, appGroupName string) error {
 	graylogPort, err := strconv.Atoi(graylogPortStr)
 	if err != nil {
 		return err
@@ -72,7 +72,7 @@ func (logger *wrapper) Init(graylogIPStr string, graylogPortStr string, appName 
 }
 
 // Critical is used for errors that cannot be recovered
-func (logger *wrapper) Critical(msg string, w http.ResponseWriter, r *http.Request) error {
+func (logger *Wrapper) Critical(msg string, w http.ResponseWriter, r *http.Request) error {
 	logger.sendToGraylog(msg, r)
 	if w != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -82,7 +82,7 @@ func (logger *wrapper) Critical(msg string, w http.ResponseWriter, r *http.Reque
 }
 
 // Error is used for errors that cannot be recovered but we can still live with them
-func (logger *wrapper) Error(msg string, w http.ResponseWriter, r *http.Request) error {
+func (logger *Wrapper) Error(msg string, w http.ResponseWriter, r *http.Request) error {
 	logger.sendToGraylog(msg, r)
 	if w != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -92,7 +92,7 @@ func (logger *wrapper) Error(msg string, w http.ResponseWriter, r *http.Request)
 }
 
 // NotFound is used when a content or corresponding value was not found
-func (logger *wrapper) NotFound(msg string, w http.ResponseWriter, r *http.Request) error {
+func (logger *Wrapper) NotFound(msg string, w http.ResponseWriter, r *http.Request) error {
 	logger.sendToGraylog(msg, r)
 	if w != nil {
 		w.WriteHeader(http.StatusNotFound)
@@ -102,25 +102,25 @@ func (logger *wrapper) NotFound(msg string, w http.ResponseWriter, r *http.Reque
 }
 
 // Warning is used for errors that have been recovered
-func (logger *wrapper) Warning(msg string, w http.ResponseWriter, r *http.Request) error {
+func (logger *Wrapper) Warning(msg string, w http.ResponseWriter, r *http.Request) error {
 	logger.sendToGraylog(msg, r)
 	return nil
 }
 
 // Notice is mainly used internally for debugging to console
-func (logger *wrapper) Notice(msg string, w http.ResponseWriter, r *http.Request) error {
+func (logger *Wrapper) Notice(msg string, w http.ResponseWriter, r *http.Request) error {
 	logger.sendToGraylog(msg, r)
 	return nil
 }
 
 // Debug is mainly used internally for debugging to console
-func (logger *wrapper) Debug(msg string, w http.ResponseWriter, r *http.Request) error {
+func (logger *Wrapper) Debug(msg string, w http.ResponseWriter, r *http.Request) error {
 	logger.sendToGraylog(msg, r)
 	return nil
 }
 
 // sendToGraylog formats and sends a message to graylog along with the filename, line number, etc
-func (logger *wrapper) sendToGraylog(msg string, r *http.Request) {
+func (logger *Wrapper) sendToGraylog(msg string, r *http.Request) {
 	pc, _, _, ok1 := runtime.Caller(1)
 	details := runtime.FuncForPC(pc)
 	if ok1 && details != nil {

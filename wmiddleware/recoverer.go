@@ -8,21 +8,21 @@ import (
 	"net/http"
 	"os"
 	"runtime/debug"
-	"wb/adslog/common"
 
+	"git.webedia-group.net/tools/adsgolib/wlog"
 	"github.com/go-chi/chi/middleware"
 )
 
 // Recoverer is a middleware that recovers from panics, logs the panic (and a
 // backtrace), and returns a HTTP 500 (Internal Server Error) status if
 // possible.
-func Recoverer(app *common.App) func(next http.Handler) http.Handler {
+func Recoverer(logger *wlog.Wrapper) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
 				if rvr := recover(); rvr != nil {
 
-					app.Logger.Critical(fmt.Sprintf("Panic: %+v", rvr), w, r)
+					logger.Critical(fmt.Sprintf("Panic: %+v", rvr), w, r)
 
 					logEntry := middleware.GetLogEntry(r)
 					if logEntry != nil {
