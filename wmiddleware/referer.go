@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+
+	"git.webedia-group.net/tools/adsgolib/wcontext"
 )
 
 // Referer implements the check of the request params against their hash

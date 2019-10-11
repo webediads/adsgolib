@@ -3,6 +3,8 @@ package wmiddleware
 import (
 	"context"
 	"net/http"
+
+	"git.webedia-group.net/tools/adsgolib/wcontext"
 )
 
 // RequestIP handles reading the input data and sets the IP of the request in the context

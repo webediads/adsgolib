@@ -6,6 +6,8 @@ package wmiddleware
 import (
 	"context"
 	"net/http"
+
+	"git.webedia-group.net/tools/adsgolib/wcontext"
 )
 
 // UserAgent stores the useragent in the context for easier use
