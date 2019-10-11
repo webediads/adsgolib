@@ -4,10 +4,14 @@ package wconnectors
 
 import (
 	"reflect"
+	"strconv"
+	"strings"
 	"sync"
 
 	"container/list"
 	"time"
+
+	"git.webedia-group.net/tools/adsgolib/wconfig"
 )
 
 // Cache of things.
@@ -178,6 +182,23 @@ var allLocalCacheSettings = make(map[string]LocalCacheSettings)
 // RegisterLocalCache registers a db connection
 func RegisterLocalCache(name string, settings LocalCacheSettings) {
 	allLocalCacheSettings[name] = settings
+}
+
+// RegisterLocalCaches registers all the entries from the config or a map
+func RegisterLocalCaches(localCacheConfigEntries map[string]string) {
+	newCacheEntries := make(map[string]bool)
+	for configCacheKey := range localCacheConfigEntries {
+		cacheName := strings.Split(configCacheKey, ".")[1]
+		if !newCacheEntries[cacheName] {
+			newCacheEntries[cacheName] = true
+			cacheSize, _ := strconv.Atoi(wconfig.Config.GetUnsafe("cache", "localcache."+cacheName+".size"))
+			cacheTTL, _ := strconv.Atoi(wconfig.Config.GetUnsafe("cache", "localcache."+cacheName+".ttl"))
+			RegisterLocalCache(cacheName, LocalCacheSettings{
+				Size: cacheSize,
+				TTL:  cacheTTL,
+			})
+		}
+	}
 }
 
 // LocalCache return a cache
