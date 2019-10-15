@@ -15,6 +15,6 @@ Modifier ~/.gitconfig
 
 Puis
 ```
-go get -insecure git.webedia.group.com/tools/adsgolib
+go get -insecure git.webedia-group.net/tools/adsgolib
 ```
 
