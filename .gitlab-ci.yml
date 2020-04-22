@@ -20,8 +20,9 @@ build:
   stage: build
   script:
     - git remote show origin
-    # - git remote add github git@github.com:webediads/adsgolib.git
-    # - git rm README.md    
-    # - git commit -am "push from gitlab"
-    # - git push github master
+    - git remote set-url --push origin git@github.com:webediads/adsgolib.git
+    - git remote show origin
+    - git rm README.md    
+    - git commit -am "push from gitlab"
+    - git push --follow-tags origin HEAD:$CI_COMMIT_REF_NAME
    
