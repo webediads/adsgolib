@@ -9,8 +9,8 @@ import (
 	"os"
 	"runtime/debug"
 
-	"git.webedia-group.net/tools/adsgolib/wlog"
 	"github.com/go-chi/chi/middleware"
+	"github.com/webediads/adsgolib/wlog"
 )
 
 // Recoverer is a middleware that recovers from panics, logs the panic (and a

@@ -11,7 +11,7 @@ import (
 	"container/list"
 	"time"
 
-	"git.webedia-group.net/tools/adsgolib/wconfig"
+	"github.com/webediads/adsgolib/wconfig"
 )
 
 // Cache of things.

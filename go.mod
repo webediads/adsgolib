@@ -1,4 +1,4 @@
-module git.webedia-group.net/tools/adsgolib
+module github.com/webediads/adsgolib
 
 go 1.13
 

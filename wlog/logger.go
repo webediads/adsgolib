@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"strings"
 
-	"git.webedia-group.net/tools/adsgolib/wcontext"
 	gelf "github.com/robertkowalski/graylog-golang"
+	"github.com/webediads/adsgolib/wcontext"
 )
 
 // Wrapper is a struct containing the required resources for logging to screen/logfile/remote syslog

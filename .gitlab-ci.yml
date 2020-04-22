@@ -5,7 +5,6 @@ stages:
   - build
 
 before_script:
-  - go list -e $(go list -f '{{.Path}}' -m all 2>/dev/null)
   - which ssh || ( apt-get update -y && apt-get install openssh-client rsync -y )
   - mkdir -p ~/.ssh
   - echo "$ADSDEPLOY_PRIVATE_KEY" > ~/.ssh/id_rsa
@@ -15,6 +14,7 @@ before_script:
 test:
   stage: test
   script:
+    - go list -e $(go list -f '{{.Path}}' -m all 2>/dev/null)
     - go test -timeout 300s ./...
 
 build:
@@ -23,7 +23,8 @@ build:
     - git remote show origin
     - git remote set-url --push origin git@github.com:webediads/adsgolib.git
     - git remote show origin
-    - git rm README.md    
+    - git rm README.md
+    - git rm .gitlab-ci.yml
     - git config --global user.email "adserver@webedia-group.com"
     - git config --global user.name "adsdeploy from gitlab"
     - git commit -am "push from gitlab"
