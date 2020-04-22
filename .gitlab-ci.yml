@@ -23,6 +23,7 @@ build:
     - git remote show origin
     - git remote set-url --push origin git@github.com:webediads/adsgolib.git
     - git remote show origin
+    - git pull
     - git rm README.md
     - git config --global user.email "adserver@webedia-group.com"
     - git config --global user.name "adsdeploy from gitlab"
