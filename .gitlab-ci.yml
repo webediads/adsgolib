@@ -21,7 +21,7 @@ build:
   stage: build
   script:
     - git remote show origin
-    - git remote set-url --push github git@github.com:webediads/adsgolib.git
+    - git remote set-url --push origin git@github.com:webediads/adsgolib.git
     - git remote show origin
     - git config --global user.email "adserver@webedia-group.com"
     - git config --global user.name "adsdeploy from gitlab"
