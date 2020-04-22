@@ -25,6 +25,5 @@ build:
     - git remote show origin
     - git config --global user.email "adserver@webedia-group.com"
     - git config --global user.name "adsdeploy from gitlab"
-    - git commit -am "push from gitlab"
     - git push --follow-tags origin HEAD:$CI_COMMIT_REF_NAME
    
