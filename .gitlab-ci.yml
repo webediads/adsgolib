@@ -19,6 +19,9 @@ test:
 build:
   stage: build
   script:
-    - git remote add github git@github.com:webediads/adsgolib.git
-    - git push github master
+    - git remote show origin
+    # - git remote add github git@github.com:webediads/adsgolib.git
+    # - git rm README.md    
+    # - git commit -am "push from gitlab"
+    # - git push github master
    
