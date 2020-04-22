@@ -1,0 +1,24 @@
+image: golang:1.13-stretch
+
+stages:
+  - test
+  - build
+
+before_script:
+  - go list -e $(go list -f '{{.Path}}' -m all 2>/dev/null)
+  - which ssh || ( apt-get update -y && apt-get install openssh-client rsync -y )
+  - mkdir -p ~/.ssh
+  - echo "$ADSDEPLOY_PRIVATE_KEY" > ~/.ssh/id_rsa
+  - chmod 600 ~/.ssh/id_rsa
+
+test:
+  stage: test
+  script:
+    - go test -timeout 300s ./...
+
+build:
+  stage: build
+  script:
+    - git remote add github git@github.com:webediads/adsgolib.git
+    - git push github master
+   
