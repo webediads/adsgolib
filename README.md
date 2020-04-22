@@ -1,3 +1,5 @@
+Pour utiliser avec gitlab (ne pas le faire lol)
+
 Modifier ~/.ssh/config
 ```
 Host git.webedia-group.net
