@@ -14,6 +14,7 @@ require (
 	github.com/segmentio/kafka-go v0.3.5
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/stretchr/testify v1.5.1 // indirect
-	google.golang.org/appengine v1.6.5 // indirect
+	golang.org/x/net v0.0.0-20190603091049-60506f45cf65 // indirect
+	golang.org/x/text v0.3.2 // indirect
 	gopkg.in/ini.v1 v1.55.0 // indirect
 )
