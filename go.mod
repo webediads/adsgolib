@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
+	github.com/bradfitz/gomemcache v0.0.0-20190913173617-a41fca850d0b
 	github.com/go-chi/chi v4.1.1+incompatible
 	github.com/go-ini/ini v1.55.0
 	github.com/go-sql-driver/mysql v1.5.0
