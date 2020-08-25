@@ -52,6 +52,7 @@ func Memcache(name string) *MemcacheConnection {
 		}
 		memcacheClient := memcache.New(strings.Join(connectionStrings, ","))
 		mcConnection.client = memcacheClient
+		mcConnection.settings = allMemcacheSettings[name]
 		memcacheConnections[name] = mcConnection
 		memcacheOnceMutex.Unlock()
 	} else {
@@ -75,9 +76,14 @@ func RegisterMemcache(name string, settingsString string) {
 	allMemcacheSettings[name] = newMemcacheConnectionSettings
 }
 
-// Store stores a value
-func (memcacheConnection MemcacheConnection) Store(key string, value []byte) {
+// Set stores a value
+func (memcacheConnection MemcacheConnection) Set(key string, value []byte) {
 	memcacheConnection.client.Set(&memcache.Item{Key: key, Value: []byte(value)})
+}
+
+// Get stores a value
+func (memcacheConnection MemcacheConnection) Get(key string, value []byte) (item *memcache.Item, err error) {
+	return memcacheConnection.client.Get(key)
 }
 
 // GetClient returns the original Memcache client
