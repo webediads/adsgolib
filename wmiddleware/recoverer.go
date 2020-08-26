@@ -10,6 +10,7 @@ import (
 	"runtime/debug"
 
 	"github.com/go-chi/chi/middleware"
+	"github.com/webediads/adsgolib/wconfig"
 	"github.com/webediads/adsgolib/wlog"
 )
 
@@ -21,6 +22,15 @@ func Recoverer(logger *wlog.Wrapper) func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
 				if rvr := recover(); rvr != nil {
+
+					environment := wconfig.Config.GetEnvironment()
+
+					envsWithDebug := []string{"dev", "staging"}
+
+					_, found := find(envsWithDebug, environment)
+					if found {
+						w.Write([]byte(fmt.Sprintf("Panic: %+v", rvr)))
+					}
 
 					logger.Critical(fmt.Sprintf("Panic: %+v", rvr), w, r)
 
@@ -41,4 +51,13 @@ func Recoverer(logger *wlog.Wrapper) func(next http.Handler) http.Handler {
 
 		return http.HandlerFunc(fn)
 	}
+}
+
+func find(slice []string, val string) (int, bool) {
+	for i, item := range slice {
+		if item == val {
+			return i, true
+		}
+	}
+	return -1, false
 }
