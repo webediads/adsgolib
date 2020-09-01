@@ -1,44 +1,19 @@
 package wlog
 
 import (
-	"encoding/json"
-	"fmt"
 	"log"
-	"net/http"
-	"regexp"
-	"runtime"
-	"runtime/debug"
-	"strconv"
-	"strings"
-
-	gelf "github.com/robertkowalski/graylog-golang"
-	"github.com/webediads/adsgolib/wcontext"
 )
 
 // Wrapper is a struct containing the required resources for logging to screen/logfile/remote syslog
 type Wrapper struct {
+	destination  ILogger
 	realLogger   log.Logger
-	graylog      *gelf.Gelf
 	appName      string
 	appGroupName string
 }
 
 // Logger is our application Wrapper object
 var Logger = &Wrapper{}
-
-type errorGelf struct {
-	App          string `json:"app"`
-	AppGroup     string `json:"app_group"`
-	FullMessage  string `json:"full_message"`
-	ShortMessage string `json:"short_message"`
-	IPAddress    string `json:"ip_address"`
-	Level        int    `json:"level"`
-	Line         int    `json:"line"`
-	Source       string `json:"source"`
-	URL          string `json:"url"`
-	URLReferer   string `json:"url_referer"`
-	UserAgent    string `json:"user_agent"`
-}
 
 /*
 0 critical : l'app ne peut pas ou plus fonctionner
@@ -55,137 +30,14 @@ var logLevels = map[string]int{
 	"debug":    7,
 }
 
-// Init will instantiate our logger, setup the graylog connection
-func (logger *Wrapper) Init(graylogIPStr string, graylogPortStr string, appName string, appGroupName string) error {
-	graylogPort, err := strconv.Atoi(graylogPortStr)
-	if err != nil {
-		return err
-	}
-	logger.graylog = gelf.New(gelf.Config{
-		GraylogHostname: graylogIPStr,
-		GraylogPort:     graylogPort,
-	})
-	logger.appName = appName
-	logger.appGroupName = appGroupName
-	return nil
+// SetLogger sets the destination which is a type ILogger
+func SetLogger(destination ILogger, appName string, appGroupName string) {
+	Logger.destination = destination
+	Logger.appName = appName
+	Logger.appGroupName = appGroupName
 }
 
-// Critical is used for errors that cannot be recovered
-func (logger *Wrapper) Critical(msg string, w http.ResponseWriter, r *http.Request) error {
-	logger.sendToGraylog(msg, r)
-	if w != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Software Failure. Press left mouse button to continue.\nGuru Meditation #00000025.65045338"))
-	}
-	return nil
-}
-
-// Error is used for errors that cannot be recovered but we can still live with them
-func (logger *Wrapper) Error(msg string, w http.ResponseWriter, r *http.Request) error {
-	logger.sendToGraylog(msg, r)
-	if w != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Software Failure. Press left mouse button to continue.\nGuru Meditation #00000025.65045338"))
-	}
-	return nil
-}
-
-// NotFound is used when a content or corresponding value was not found
-func (logger *Wrapper) NotFound(msg string, w http.ResponseWriter, r *http.Request) error {
-	logger.sendToGraylog(msg, r)
-	if w != nil {
-		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte("404 - not found"))
-	}
-	return nil
-}
-
-// Warning is used for errors that have been recovered
-func (logger *Wrapper) Warning(msg string, w http.ResponseWriter, r *http.Request) error {
-	logger.sendToGraylog(msg, r)
-	return nil
-}
-
-// Notice is mainly used internally for debugging to console
-func (logger *Wrapper) Notice(msg string, w http.ResponseWriter, r *http.Request) error {
-	logger.sendToGraylog(msg, r)
-	return nil
-}
-
-// Debug is mainly used internally for debugging to console
-func (logger *Wrapper) Debug(msg string, w http.ResponseWriter, r *http.Request) error {
-	logger.sendToGraylog(msg, r)
-	return nil
-}
-
-// sendToGraylog formats and sends a message to graylog along with the filename, line number, etc
-func (logger *Wrapper) sendToGraylog(msg string, r *http.Request) {
-	pc, _, _, ok1 := runtime.Caller(1)
-	details := runtime.FuncForPC(pc)
-	if ok1 && details != nil {
-
-		fmt.Println("error sent to Graylog")
-
-		// details.Name() contient le nom de la méthode appelée juste avant
-		regex, _ := regexp.Compile(".[a-z]+$")
-		previousFunction := regex.FindString(details.Name())
-		if previousFunction != "" {
-			previousFunction = strings.ToLower(previousFunction)
-			logLevel, levelFound := logLevels[previousFunction]
-			if !levelFound {
-				logLevel = 7
-			}
-
-			_, fileName, lineNumber, ok2 := runtime.Caller(2)
-
-			var ok3 = true
-			if ok2 {
-				if strings.HasSuffix(fileName, "recoverer.go") {
-					_, fileName, lineNumber, ok3 = runtime.Caller(5)
-				}
-			}
-			if ok3 {
-
-				// default values
-				logIP := "unknown"
-				logReferer := "unknown"
-				logUserAgent := "unknown"
-				logURL := "unknown"
-
-				if r != nil {
-					ctx := r.Context()
-					logIP, _ = ctx.Value(wcontext.ContextKeyRequestIP).(string)
-					logReferer, _ = ctx.Value(wcontext.ContextKeyReferer).(string)
-					logUserAgent, _ = ctx.Value(wcontext.ContextKeyUserAgent).(string)
-					logURL = r.URL.RequestURI()
-				}
-
-				debugStack := debug.Stack()
-
-				errorToLog := errorGelf{
-					App:          logger.appName,
-					AppGroup:     logger.appGroupName,
-					ShortMessage: msg,
-					FullMessage:  string(debugStack),
-					IPAddress:    logIP,
-					Level:        logLevel,
-					Line:         lineNumber,
-					Source:       fileName,
-					URL:          logURL,
-					URLReferer:   logReferer,
-					UserAgent:    logUserAgent,
-				}
-
-				fmt.Println("sent to graylog maybe")
-
-				errorToLogJSON, errJSON := json.Marshal(errorToLog)
-				if errJSON == nil {
-					logger.graylog.Log(string(errorToLogJSON))
-				}
-
-			}
-		}
-
-	}
-
+// GetLogger returns the destination for quick access
+func GetLogger() ILogger {
+	return Logger.destination
 }

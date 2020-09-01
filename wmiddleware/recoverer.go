@@ -17,7 +17,7 @@ import (
 // Recoverer is a middleware that recovers from panics, logs the panic (and a
 // backtrace), and returns a HTTP 500 (Internal Server Error) status if
 // possible.
-func Recoverer(logger *wlog.Wrapper) func(next http.Handler) http.Handler {
+func Recoverer() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
@@ -32,7 +32,7 @@ func Recoverer(logger *wlog.Wrapper) func(next http.Handler) http.Handler {
 						w.Write([]byte(fmt.Sprintf("Panic: %+v", rvr)))
 					}
 
-					logger.Critical(fmt.Sprintf("Panic: %+v", rvr), w, r)
+					wlog.GetLogger().Critical(fmt.Sprintf("Panic: %+v", rvr), w, r)
 
 					logEntry := middleware.GetLogEntry(r)
 					if logEntry != nil {

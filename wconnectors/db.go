@@ -9,6 +9,7 @@ import (
 
 	// mysql
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/webediads/adsgolib/wconfig"
 )
 
 var dbConnections map[string]*sql.DB
@@ -27,8 +28,14 @@ type DbSettings struct {
 var allDbSettings = make(map[string]DbSettings)
 
 // RegisterDb registers a db connection
-func RegisterDb(name string, settings DbSettings) {
-	allDbSettings[name] = settings
+func RegisterDb(name string) {
+	allDbSettings[name] = DbSettings{
+		Username: wconfig.Config.GetUnsafe("db", name+".username"),
+		Password: wconfig.Config.GetUnsafe("db", name+".password"),
+		Host:     wconfig.Config.GetUnsafe("db", name+".host"),
+		Port:     wconfig.Config.GetUnsafe("db", name+".port"),
+		Database: wconfig.Config.GetUnsafe("db", name+".database"),
+	}
 }
 
 // Db returns a connection
