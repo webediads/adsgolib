@@ -13,6 +13,7 @@ require (
 	github.com/robertkowalski/graylog-golang v0.0.0-20151121031040-e5295cfa2827
 	github.com/segmentio/kafka-go v0.3.5
 	github.com/smartystreets/goconvey v1.6.4 // indirect
+	github.com/streadway/amqp v1.0.0
 	github.com/stretchr/testify v1.5.1 // indirect
 	golang.org/x/net v0.0.0-20190603091049-60506f45cf65 // indirect
 	golang.org/x/text v0.3.2 // indirect

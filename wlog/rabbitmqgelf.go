@@ -1,40 +1,51 @@
 package wlog
 
 import (
-	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"regexp"
 	"runtime"
 	"runtime/debug"
-	"strconv"
 	"strings"
 
-	gelf "github.com/robertkowalski/graylog-golang"
+	"github.com/streadway/amqp"
 	"github.com/webediads/adsgolib/wcontext"
 )
 
-// Graylog is our connection to Graylog
-type Graylog struct {
-	gelfConnection *gelf.Gelf
+// RabbitMqGelf is our connection to Graylog
+type RabbitMqGelf struct {
+	channel *amqp.Channel
 }
 
-// NewGraylog will instantiate our logger, setup the graylog connection
-func NewGraylog(graylogIPStr string, graylogPortStr string) *Graylog {
-	graylogPort, err := strconv.Atoi(graylogPortStr)
+// NewRabbitMqGelf will instantiate our logger, setup the rabbitmq connection and channel
+func NewRabbitMqGelf(rabbitGelfHostStr string, rabbitGelfUserStr string, rabbitGelfPasswordStr string) *RabbitMqGelf {
+
+	// pour le tls : + fichiers dans ./etc/rabbitmqgelf du client
+	// https://stackoverflow.com/questions/62436071/tls-handshake-failure-when-enabling-tls-for-rabbitmq-with-streadway-amqp
+	// https://github.com/streadway/amqp/issues/455
+
+	conn, err := amqp.Dial("amqps://" + rabbitGelfUserStr + ":" + rabbitGelfPasswordStr + "@" + rabbitGelfHostStr + ":5671/")
+	failOnError(err, "Failed to connect to RabbitMQ")
+	defer conn.Close()
+
+	ch, err := conn.Channel()
+	failOnError(err, "Failed to open a channel")
+	defer ch.Close()
+
+	loggerRabbitMqGelf := new(RabbitMqGelf)
+	loggerRabbitMqGelf.channel = ch
+	return loggerRabbitMqGelf
+}
+
+func failOnError(err error, msg string) {
 	if err != nil {
-		panic(err.Error())
+		log.Fatalf("%s: %s", msg, err)
 	}
-	loggerGraylog := new(Graylog)
-	loggerGraylog.gelfConnection = gelf.New(gelf.Config{
-		GraylogHostname: graylogIPStr,
-		GraylogPort:     graylogPort,
-	})
-	return loggerGraylog
 }
 
 // Critical is used for errors that cannot be recovered
-func (logger *Graylog) Critical(msg string, w http.ResponseWriter, r *http.Request) error {
+func (logger *RabbitMqGelf) Critical(msg string, w http.ResponseWriter, r *http.Request) error {
 	logger.sendToDestination(msg, r)
 	if w != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -44,7 +55,7 @@ func (logger *Graylog) Critical(msg string, w http.ResponseWriter, r *http.Reque
 }
 
 // Error is used for errors that cannot be recovered but we can still live with them
-func (logger *Graylog) Error(msg string, w http.ResponseWriter, r *http.Request) error {
+func (logger *RabbitMqGelf) Error(msg string, w http.ResponseWriter, r *http.Request) error {
 	logger.sendToDestination(msg, r)
 	if w != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -54,7 +65,7 @@ func (logger *Graylog) Error(msg string, w http.ResponseWriter, r *http.Request)
 }
 
 // NotFound is used when a content or corresponding value was not found
-func (logger *Graylog) NotFound(msg string, w http.ResponseWriter, r *http.Request) error {
+func (logger *RabbitMqGelf) NotFound(msg string, w http.ResponseWriter, r *http.Request) error {
 	logger.sendToDestination(msg, r)
 	if w != nil {
 		w.WriteHeader(http.StatusNotFound)
@@ -64,25 +75,25 @@ func (logger *Graylog) NotFound(msg string, w http.ResponseWriter, r *http.Reque
 }
 
 // Warning is used for errors that have been recovered
-func (logger *Graylog) Warning(msg string, w http.ResponseWriter, r *http.Request) error {
+func (logger *RabbitMqGelf) Warning(msg string, w http.ResponseWriter, r *http.Request) error {
 	logger.sendToDestination(msg, r)
 	return nil
 }
 
 // Notice is mainly used internally for debugging to console
-func (logger *Graylog) Notice(msg string, w http.ResponseWriter, r *http.Request) error {
+func (logger *RabbitMqGelf) Notice(msg string, w http.ResponseWriter, r *http.Request) error {
 	logger.sendToDestination(msg, r)
 	return nil
 }
 
 // Debug is mainly used internally for debugging to console
-func (logger *Graylog) Debug(msg string, w http.ResponseWriter, r *http.Request) error {
+func (logger *RabbitMqGelf) Debug(msg string, w http.ResponseWriter, r *http.Request) error {
 	logger.sendToDestination(msg, r)
 	return nil
 }
 
 // sendToGraylog formats and sends a message to graylog along with the filename, line number, etc
-func (logger *Graylog) sendToDestination(msg string, r *http.Request) {
+func (logger *RabbitMqGelf) sendToDestination(msg string, r *http.Request) {
 	pc, _, _, ok1 := runtime.Caller(1)
 	details := runtime.FuncForPC(pc)
 	if ok1 && details != nil {
@@ -108,6 +119,16 @@ func (logger *Graylog) sendToDestination(msg string, r *http.Request) {
 				}
 			}
 			if ok3 {
+
+				q, err := logger.channel.QueueDeclare(
+					"log-messages", // name
+					false,          // durable
+					false,          // delete when unused
+					false,          // exclusive
+					false,          // no-wait
+					nil,            // arguments
+				)
+				failOnError(err, "Failed to declare a queue")
 
 				// default values
 				logIP := "unknown"
@@ -138,11 +159,19 @@ func (logger *Graylog) sendToDestination(msg string, r *http.Request) {
 					URLReferer:   logReferer,
 					UserAgent:    logUserAgent,
 				}
+				fmt.Println(errorToLog)
 
-				errorToLogJSON, errJSON := json.Marshal(errorToLog)
-				if errJSON == nil {
-					logger.gelfConnection.Log(string(errorToLogJSON))
-				}
+				body := "Hello World!"
+				err = logger.channel.Publish(
+					"",     // exchange
+					q.Name, // routing key
+					false,  // mandatory
+					false,  // immediate
+					amqp.Publishing{
+						ContentType: "text/plain",
+						Body:        []byte(body),
+					})
+				failOnError(err, "Failed to publish a message")
 
 			}
 		}
