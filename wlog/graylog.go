@@ -14,20 +14,6 @@ import (
 	"github.com/webediads/adsgolib/wcontext"
 )
 
-type errorGelf struct {
-	App          string `json:"app"`
-	AppGroup     string `json:"app_group"`
-	FullMessage  string `json:"full_message"`
-	ShortMessage string `json:"short_message"`
-	IPAddress    string `json:"ip_address"`
-	Level        int    `json:"level"`
-	Line         int    `json:"line"`
-	Source       string `json:"source"`
-	URL          string `json:"url"`
-	URLReferer   string `json:"url_referer"`
-	UserAgent    string `json:"user_agent"`
-}
-
 // Graylog is our connection to Graylog
 type Graylog struct {
 	gelfConnection *gelf.Gelf
