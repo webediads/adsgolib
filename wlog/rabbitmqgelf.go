@@ -1,7 +1,11 @@
 package wlog
 
 import (
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"regexp"
@@ -19,19 +23,53 @@ type RabbitMqGelf struct {
 }
 
 // NewRabbitMqGelf will instantiate our logger, setup the rabbitmq connection and channel
-func NewRabbitMqGelf(rabbitGelfHostStr string, rabbitGelfUserStr string, rabbitGelfPasswordStr string) *RabbitMqGelf {
+func NewRabbitMqGelf(rabbitGelfProtocolStr string, rabbitGelfHostStr string, rabbitGelfUserStr string, rabbitGelfPasswordStr string, caCertFile string, clientCertFile string, clientKeyFile string) *RabbitMqGelf {
 
-	// pour le tls : + fichiers dans ./etc/rabbitmqgelf du client
-	// https://stackoverflow.com/questions/62436071/tls-handshake-failure-when-enabling-tls-for-rabbitmq-with-streadway-amqp
-	// https://github.com/streadway/amqp/issues/455
+	var conn *amqp.Connection
+	var err error
 
-	conn, err := amqp.Dial("amqps://" + rabbitGelfUserStr + ":" + rabbitGelfPasswordStr + "@" + rabbitGelfHostStr + ":5671/")
-	failOnError(err, "Failed to connect to RabbitMQ")
-	defer conn.Close()
+	if rabbitGelfProtocolStr == "amqps" {
+		// pour le tls : + fichiers dans ./etc/rabbitmqgelf du client
+		// https://stackoverflow.com/questions/62436071/tls-handshake-failure-when-enabling-tls-for-rabbitmq-with-streadway-amqp
+		// https://github.com/streadway/amqp/issues/455
+
+		cert, err := tls.LoadX509KeyPair(".etc/rabbitmqgelf/client_certificate.pem", ".etc/rabbitmqgelf/client_key.pem")
+
+		// Load CA cert
+		caCert, err := ioutil.ReadFile(".etc/rabbitmqgelf/cacert.pem") // The same you configured in the rabbit MQ server
+		if err != nil {
+			log.Fatal(err)
+		}
+		caCertPool := x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM(caCert)
+
+		tlsConfig := &tls.Config{
+			Certificates: []tls.Certificate{cert}, // from tls.LoadX509KeyPair
+			RootCAs:      caCertPool,
+			CipherSuites: []uint16{
+				// openssl s_client -connect rabbitmq:5671 -tls1
+				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+			},
+			CurvePreferences:         []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
+			PreferServerCipherSuites: true,
+			InsecureSkipVerify:       true,
+			MinVersion:               tls.VersionTLS10,
+		}
+
+		conn, err = amqp.DialTLS("amqps://"+rabbitGelfUserStr+":"+rabbitGelfPasswordStr+"@"+rabbitGelfHostStr+":5671/", tlsConfig)
+	} else {
+		conn, err = amqp.Dial("amqp://" + rabbitGelfUserStr + ":" + rabbitGelfPasswordStr + "@" + rabbitGelfHostStr + ":5672/")
+	}
+
+	if err != nil {
+		failOnError(err, "Failed to connect to RabbitMQ")
+	}
+	// defer conn.Close()
 
 	ch, err := conn.Channel()
 	failOnError(err, "Failed to open a channel")
-	defer ch.Close()
+	// defer ch.Close()
 
 	loggerRabbitMqGelf := new(RabbitMqGelf)
 	loggerRabbitMqGelf.channel = ch
@@ -98,7 +136,7 @@ func (logger *RabbitMqGelf) sendToDestination(msg string, r *http.Request) {
 	details := runtime.FuncForPC(pc)
 	if ok1 && details != nil {
 
-		fmt.Println("error sent to Graylog")
+		fmt.Println("error sent to Rabbit")
 
 		// details.Name() contient le nom de la méthode appelée juste avant
 		regex, _ := regexp.Compile(".[a-z]+$")
@@ -122,7 +160,7 @@ func (logger *RabbitMqGelf) sendToDestination(msg string, r *http.Request) {
 
 				q, err := logger.channel.QueueDeclare(
 					"log-messages", // name
-					false,          // durable
+					true,           // durable
 					false,          // delete when unused
 					false,          // exclusive
 					false,          // no-wait
@@ -161,17 +199,19 @@ func (logger *RabbitMqGelf) sendToDestination(msg string, r *http.Request) {
 				}
 				fmt.Println(errorToLog)
 
-				body := "Hello World!"
-				err = logger.channel.Publish(
-					"",     // exchange
-					q.Name, // routing key
-					false,  // mandatory
-					false,  // immediate
-					amqp.Publishing{
-						ContentType: "text/plain",
-						Body:        []byte(body),
-					})
-				failOnError(err, "Failed to publish a message")
+				errorToLogJSON, errJSON := json.Marshal(errorToLog)
+				if errJSON == nil {
+					err = logger.channel.Publish(
+						"",     // exchange
+						q.Name, // routing key
+						false,  // mandatory
+						false,  // immediate
+						amqp.Publishing{
+							ContentType: "text/plain",
+							Body:        []byte(errorToLogJSON),
+						})
+					failOnError(err, "Failed to publish a message")
+				}
 
 			}
 		}
