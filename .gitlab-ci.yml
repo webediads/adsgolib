@@ -27,4 +27,6 @@ build:
     - git config --global user.name "adsdeploy from gitlab"
     - git push --tags origin HEAD:$CI_COMMIT_REF_NAME
     - git push -f --follow-tags origin HEAD:$CI_COMMIT_REF_NAME
-   
+  only:
+    refs:
+      - master

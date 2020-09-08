@@ -2,6 +2,7 @@ package wlog
 
 import (
 	"log"
+	"net/http"
 )
 
 // Wrapper is a struct containing the required resources for logging to screen/logfile/remote syslog
@@ -28,6 +29,31 @@ var logLevels = map[string]int{
 	"warning":  5,
 	"notice":   6,
 	"debug":    7,
+}
+
+// ILogger is our interface for matching our logger systems
+type ILogger interface {
+	Critical(msg string, w http.ResponseWriter, r *http.Request) error
+	Error(msg string, w http.ResponseWriter, r *http.Request) error
+	NotFound(msg string, w http.ResponseWriter, r *http.Request) error
+	Warning(msg string, w http.ResponseWriter, r *http.Request) error
+	Notice(msg string, w http.ResponseWriter, r *http.Request) error
+	Debug(msg string, w http.ResponseWriter, r *http.Request) error
+	sendToDestination(msg string, r *http.Request)
+}
+
+type errorGelf struct {
+	App          string `json:"app"`
+	AppGroup     string `json:"app_group"`
+	FullMessage  string `json:"full_message"`
+	ShortMessage string `json:"short_message"`
+	IPAddress    string `json:"ip_address"`
+	Level        int    `json:"level"`
+	Line         int    `json:"line"`
+	Source       string `json:"source"`
+	URL          string `json:"url"`
+	URLReferer   string `json:"url_referer"`
+	UserAgent    string `json:"user_agent"`
 }
 
 // SetLogger sets the destination which is a type ILogger
