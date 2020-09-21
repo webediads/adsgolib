@@ -84,7 +84,11 @@ func (memcacheConnection MemcacheConnection) Set(key string, value []byte) {
 // Get stores a value
 func (memcacheConnection MemcacheConnection) Get(key string) ([]byte, error) {
 	i, err := memcacheConnection.client.Get(key)
-	return i.Value, err
+	if err != nil {
+		return []byte(""), err
+	}
+	return i.Value, nil
+
 }
 
 // GetClient returns the original Memcache client
