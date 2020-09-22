@@ -2,6 +2,7 @@ package wmiddleware
 
 import (
 	"context"
+	"net"
 	"net/http"
 
 	"github.com/webediads/adsgolib/wcontext"
@@ -14,12 +15,12 @@ func RequestIP(contextKeyIP wcontext.Key) func(next http.Handler) http.Handler {
 			ctx := r.Context()
 
 			// default without proxy
-			fromIP := r.RemoteAddr
+			fromIP, _, _ := net.SplitHostPort(r.RemoteAddr)
 
 			// check if the user is behind a proxy
 			xForwardedFor := r.Header.Get("X-Forwarded-For")
 			if xForwardedFor != "" {
-				fromIP = xForwardedFor
+				fromIP, _, _ = net.SplitHostPort(xForwardedFor)
 			}
 
 			ctx = context.WithValue(r.Context(), contextKeyIP, fromIP)
