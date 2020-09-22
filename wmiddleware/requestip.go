@@ -20,7 +20,10 @@ func RequestIP(contextKeyIP wcontext.Key) func(next http.Handler) http.Handler {
 			// check if the user is behind a proxy
 			xForwardedFor := r.Header.Get("X-Forwarded-For")
 			if xForwardedFor != "" {
-				fromIP, _, _ = net.SplitHostPort(xForwardedFor)
+				fromIPForwarded, _, err := net.SplitHostPort(xForwardedFor)
+				if err != nil {
+					fromIP = fromIPForwarded
+				}
 			}
 
 			ctx = context.WithValue(r.Context(), contextKeyIP, fromIP)
