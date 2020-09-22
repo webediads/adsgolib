@@ -39,6 +39,12 @@ func (config *wrapper) Get(section string, key string) (string, error) {
 	return val.String(), nil
 }
 
+// Set assigns the value of a key (from a string)
+func (config *wrapper) Set(section string, key string, value string) error {
+	config.cfg.Section(section).Key(key).SetValue(value)
+	return nil
+}
+
 // GetUnsafe returns the value of a key (as a string)
 func (config *wrapper) GetUnsafe(section string, key string) string {
 	val, err := config.Get(section, key)
