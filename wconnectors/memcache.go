@@ -77,8 +77,14 @@ func RegisterMemcache(name string, settingsString string) {
 }
 
 // Set stores a value
-func (memcacheConnection MemcacheConnection) Set(key string, value []byte) {
-	memcacheConnection.client.Set(&memcache.Item{Key: key, Value: []byte(value)})
+func (memcacheConnection MemcacheConnection) Set(key string, value []byte, expirationSecondsOpt ...int32) {
+	var expirationSeconds int32
+	if len(expirationSecondsOpt) > 0 {
+		expirationSeconds = expirationSecondsOpt[0]
+	} else {
+		expirationSeconds = 3600
+	}
+	memcacheConnection.client.Set(&memcache.Item{Key: key, Value: []byte(value), Expiration: int32(expirationSeconds)})
 }
 
 // Get stores a value
