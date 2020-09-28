@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/bradfitz/gomemcache/memcache"
+	"github.com/webediads/adsgolib/wlog"
 )
 
 var memcacheConnections map[string]*MemcacheConnection
@@ -77,20 +78,25 @@ func RegisterMemcache(name string, settingsString string) {
 }
 
 // Set stores a value
-func (memcacheConnection MemcacheConnection) Set(key string, value []byte, expirationSecondsOpt ...int32) {
+func (memcacheConnection MemcacheConnection) Set(key string, value []byte, expirationSecondsOpt ...int32) error {
 	var expirationSeconds int32
 	if len(expirationSecondsOpt) > 0 {
 		expirationSeconds = expirationSecondsOpt[0]
 	} else {
 		expirationSeconds = 3600
 	}
-	memcacheConnection.client.Set(&memcache.Item{Key: key, Value: []byte(value), Expiration: int32(expirationSeconds)})
+	mcErr := memcacheConnection.client.Set(&memcache.Item{Key: key, Value: []byte(value), Expiration: int32(expirationSeconds)})
+	if mcErr != nil {
+		wlog.GetLogger().Notice("memcache error set", nil, nil)
+	}
+	return mcErr
 }
 
 // Get stores a value
 func (memcacheConnection MemcacheConnection) Get(key string) ([]byte, error) {
 	i, err := memcacheConnection.client.Get(key)
 	if err != nil {
+		wlog.GetLogger().Notice("memcache error get", nil, nil)
 		return []byte(""), err
 	}
 	return i.Value, nil
