@@ -100,7 +100,6 @@ func (memcacheConnection MemcacheConnection) Get(key string) ([]byte, error) {
 		return []byte(""), err
 	}
 	return i.Value, nil
-
 }
 
 // GetClient returns the original Memcache client
