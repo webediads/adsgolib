@@ -8,11 +8,13 @@ import (
 	"time"
 
 	// mysql
+	sqlmock "github.com/DATA-DOG/go-sqlmock"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/webediads/adsgolib/wconfig"
 )
 
 var dbConnections map[string]*sql.DB
+var dbMocks map[string]sqlmock.Sqlmock
 var dbOnce map[string]bool
 var dbOnceMutex sync.Mutex
 
@@ -23,6 +25,7 @@ type DbSettings struct {
 	Host     string
 	Port     string
 	Database string
+	IsMock   bool
 }
 
 var allDbSettings = make(map[string]DbSettings)
@@ -35,6 +38,19 @@ func RegisterDb(name string) {
 		Host:     wconfig.Config.GetUnsafe("db", name+".host"),
 		Port:     wconfig.Config.GetUnsafe("db", name+".port"),
 		Database: wconfig.Config.GetUnsafe("db", name+".database"),
+		IsMock:   false,
+	}
+}
+
+// RegisterMockDb registers a mocked db connection
+func RegisterMockDb(name string) {
+	allDbSettings[name] = DbSettings{
+		Username: "mock",
+		Password: "mock",
+		Host:     "3306",
+		Port:     "mock",
+		Database: "mock",
+		IsMock:   true,
 	}
 }
 
@@ -53,29 +69,38 @@ func Db(name string) *sql.DB {
 	if len(dbOnce) == 0 {
 		dbOnce = make(map[string]bool, 15)
 		dbConnections = make(map[string]*sql.DB, 15)
+		dbMocks = make(map[string]sqlmock.Sqlmock, 15)
 	}
 
 	dbOnceMutex.Lock()
 	if !dbOnce[name] {
 		dbOnce[name] = true
-		connectionStringArr := []string{
-			dbSettings.Username,
-			":",
-			dbSettings.Password,
-			"@(",
-			dbSettings.Host,
-			":",
-			dbSettings.Port,
-			")/",
-			dbSettings.Database,
-			"?parseTime=true",
+		if !dbSettings.IsMock {
+			connectionStringArr := []string{
+				dbSettings.Username,
+				":",
+				dbSettings.Password,
+				"@(",
+				dbSettings.Host,
+				":",
+				dbSettings.Port,
+				")/",
+				dbSettings.Database,
+				"?parseTime=true",
+			}
+			dbConnections[name], _ = sql.Open("mysql", strings.Join(connectionStringArr, ""))
+			err := dbConnections[name].Ping()
+			if err != nil {
+				fmt.Println(err.Error())
+			}
+			dbConnections[name].SetConnMaxLifetime(time.Second)
+		} else {
+			dbConnections[name], dbMocks[name], _ = sqlmock.New()
+			err := dbConnections[name].Ping()
+			if err != nil {
+				fmt.Println(err.Error())
+			}
 		}
-		dbConnections[name], _ = sql.Open("mysql", strings.Join(connectionStringArr, ""))
-		err := dbConnections[name].Ping()
-		if err != nil {
-			fmt.Println(err.Error())
-		}
-		dbConnections[name].SetConnMaxLifetime(time.Second)
 		dbOnceMutex.Unlock()
 	} else {
 		dbOnceMutex.Unlock()
@@ -83,4 +108,9 @@ func Db(name string) *sql.DB {
 
 	return dbConnections[name]
 
+}
+
+// DbMock returns a mock previously defined with Db
+func DbMock(name string) sqlmock.Sqlmock {
+	return dbMocks[name]
 }
