@@ -3,7 +3,6 @@ package wmiddleware
 import (
 	"bytes"
 	"context"
-	"log"
 	"net"
 	"net/http"
 	"strings"
@@ -77,11 +76,6 @@ func RequestIP(contextKeyIP wcontext.Key) func(next http.Handler) http.Handler {
 			// default without proxy
 			fromIP, _, _ := net.SplitHostPort(r.RemoteAddr)
 
-			log.Println("fromIP r.RemoteAddr", fromIP)
-
-			log.Println("fromIP X-Forwarded-For", r.Header.Get("X-Forwarded-For"))
-			log.Println("fromIP X-Real-Ip", r.Header.Get("X-Real-Ip"))
-
 			for _, h := range []string{"X-Forwarded-For", "X-Real-Ip"} {
 				addresses := strings.Split(r.Header.Get(h), ",")
 				// march from right to left until we get a public address
@@ -109,8 +103,6 @@ func RequestIP(contextKeyIP wcontext.Key) func(next http.Handler) http.Handler {
 					}
 				}
 			}
-
-			log.Println("fromIP after parsed headers", fromIP)
 
 			ctx = context.WithValue(r.Context(), contextKeyIP, fromIP)
 			next.ServeHTTP(w, r.WithContext(ctx))
