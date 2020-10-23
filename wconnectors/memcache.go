@@ -96,8 +96,10 @@ func (memcacheConnection MemcacheConnection) Set(key string, value []byte, expir
 func (memcacheConnection MemcacheConnection) Get(key string) ([]byte, error) {
 	i, err := memcacheConnection.client.Get(key)
 	if err != nil {
-		wlog.GetLogger().Notice("memcache error get", nil, nil)
-		return []byte(""), err
+		if err != memcache.ErrCacheMiss {
+			wlog.GetLogger().Notice("memcache error get: "+err.Error(), nil, nil)
+			return []byte(""), err
+		}
 	}
 	return i.Value, nil
 }
