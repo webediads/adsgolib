@@ -98,8 +98,8 @@ func (memcacheConnection MemcacheConnection) Get(key string) ([]byte, error) {
 	if err != nil {
 		if err != memcache.ErrCacheMiss {
 			wlog.GetLogger().Notice("memcache error get: "+err.Error(), nil, nil)
-			return []byte(""), err
 		}
+		return []byte(""), err
 	}
 	return i.Value, nil
 }
