@@ -1,6 +1,7 @@
 package wconnectors
 
 import (
+	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -49,16 +50,24 @@ func Memcache(name string) *MemcacheConnection {
 		mcConnection := new(MemcacheConnection)
 		var connectionStrings []string
 		for _, memcacheSettingsForHost := range allMemcacheSettings[name] {
-			connectionStrings = append(connectionStrings, memcacheSettingsForHost.Host+":"+strconv.Itoa(memcacheSettingsForHost.Port))
+			// if we did not receive an empty config
+			if memcacheSettingsForHost.Host != "" {
+				connectionStrings = append(connectionStrings, memcacheSettingsForHost.Host+":"+strconv.Itoa(memcacheSettingsForHost.Port))
+			}
 		}
-		memcacheClient := memcache.New(strings.Join(connectionStrings, ","))
-		mcConnection.client = memcacheClient
-		mcConnection.settings = allMemcacheSettings[name]
-		memcacheConnections[name] = mcConnection
-		memcacheOnceMutex.Unlock()
-	} else {
-		memcacheOnceMutex.Unlock()
+		// if the adapters list is empty (empty config)
+		if len(connectionStrings) == 0 {
+			fmt.Println("empty config 0")
+			mcConnection.client = nil
+			memcacheConnections[name] = mcConnection
+		} else {
+			memcacheClient := memcache.New(strings.Join(connectionStrings, ","))
+			mcConnection.client = memcacheClient
+			mcConnection.settings = allMemcacheSettings[name]
+			memcacheConnections[name] = mcConnection
+		}
 	}
+	memcacheOnceMutex.Unlock()
 
 	return memcacheConnections[name]
 }
@@ -67,12 +76,18 @@ func Memcache(name string) *MemcacheConnection {
 // ex : wconnectors.RegisterMemcache("global", wconfig.Config.GetUnsafe("cache", "memcache.global"))
 func RegisterMemcache(name string, settingsString string) {
 	var newMemcacheConnectionSettings memcacheConnectionSettings
-	settingsArr := strings.Split(settingsString, ",")
-	for _, settingsEntry := range settingsArr {
-		settingsEntry = strings.TrimSpace(settingsEntry)
-		settingsEntryArr := strings.Split(settingsEntry, ":")
-		port, _ := strconv.Atoi(settingsEntryArr[1])
-		newMemcacheConnectionSettings = append(newMemcacheConnectionSettings, memcacheHostSettings{Host: settingsEntryArr[0], Port: port})
+	// if we receive an empty config
+	if strings.TrimSpace(settingsString) == "" {
+		fmt.Println("empty config 1")
+		newMemcacheConnectionSettings = append(newMemcacheConnectionSettings, memcacheHostSettings{Host: "", Port: 0})
+	} else {
+		settingsArr := strings.Split(settingsString, ",")
+		for _, settingsEntry := range settingsArr {
+			settingsEntry = strings.TrimSpace(settingsEntry)
+			settingsEntryArr := strings.Split(settingsEntry, ":")
+			port, _ := strconv.Atoi(settingsEntryArr[1])
+			newMemcacheConnectionSettings = append(newMemcacheConnectionSettings, memcacheHostSettings{Host: settingsEntryArr[0], Port: port})
+		}
 	}
 	allMemcacheSettings[name] = newMemcacheConnectionSettings
 }
@@ -85,23 +100,34 @@ func (memcacheConnection MemcacheConnection) Set(key string, value []byte, expir
 	} else {
 		expirationSeconds = 3600
 	}
-	mcErr := memcacheConnection.client.Set(&memcache.Item{Key: key, Value: []byte(value), Expiration: int32(expirationSeconds)})
-	if mcErr != nil {
-		wlog.GetLogger().Notice("memcache error set", nil, nil)
+	// if the config is not empty
+	if memcacheConnection.client != nil {
+		mcErr := memcacheConnection.client.Set(&memcache.Item{Key: key, Value: []byte(value), Expiration: int32(expirationSeconds)})
+		if mcErr != nil {
+			wlog.GetLogger().Notice("memcache error set", nil, nil)
+		}
+		return mcErr
+	} else {
+		// do nothing as intended with an empty config
+		return nil
 	}
-	return mcErr
 }
 
 // Get stores a value
 func (memcacheConnection MemcacheConnection) Get(key string) ([]byte, error) {
-	i, err := memcacheConnection.client.Get(key)
-	if err != nil {
-		if err != memcache.ErrCacheMiss {
-			wlog.GetLogger().Notice("memcache error get: "+err.Error(), nil, nil)
+	// if the config is not empty
+	if memcacheConnection.client != nil {
+		i, err := memcacheConnection.client.Get(key)
+		if err != nil {
+			if err != memcache.ErrCacheMiss {
+				wlog.GetLogger().Notice("memcache error get: "+err.Error(), nil, nil)
+			}
+			return []byte(""), err
 		}
-		return []byte(""), err
+		return i.Value, nil
+	} else {
+		return nil, memcache.ErrCacheMiss
 	}
-	return i.Value, nil
 }
 
 // GetClient returns the original Memcache client
