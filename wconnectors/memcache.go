@@ -1,7 +1,6 @@
 package wconnectors
 
 import (
-	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -57,7 +56,6 @@ func Memcache(name string) *MemcacheConnection {
 		}
 		// if the adapters list is empty (empty config)
 		if len(connectionStrings) == 0 {
-			fmt.Println("empty config 0")
 			mcConnection.client = nil
 			memcacheConnections[name] = mcConnection
 		} else {
@@ -78,7 +76,6 @@ func RegisterMemcache(name string, settingsString string) {
 	var newMemcacheConnectionSettings memcacheConnectionSettings
 	// if we receive an empty config
 	if strings.TrimSpace(settingsString) == "" {
-		fmt.Println("empty config 1")
 		newMemcacheConnectionSettings = append(newMemcacheConnectionSettings, memcacheHostSettings{Host: "", Port: 0})
 	} else {
 		settingsArr := strings.Split(settingsString, ",")
