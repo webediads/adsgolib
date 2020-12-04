@@ -33,10 +33,10 @@ func NewRabbitMqGelf(rabbitGelfProtocolStr string, rabbitGelfHostStr string, rab
 		// https://stackoverflow.com/questions/62436071/tls-handshake-failure-when-enabling-tls-for-rabbitmq-with-streadway-amqp
 		// https://github.com/streadway/amqp/issues/455
 
-		cert, err := tls.LoadX509KeyPair(".etc/rabbitmqgelf/client_certificate.pem", ".etc/rabbitmqgelf/client_key.pem")
+		cert, err := tls.LoadX509KeyPair(clientCertFile, clientKeyFile)
 
 		// Load CA cert
-		caCert, err := ioutil.ReadFile(".etc/rabbitmqgelf/cacert.pem") // The same you configured in the rabbit MQ server
+		caCert, err := ioutil.ReadFile(caCertFile) // The same you configured in the rabbit MQ server
 		if err != nil {
 			log.Fatal(err)
 		}
