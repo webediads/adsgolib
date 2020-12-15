@@ -197,7 +197,7 @@ func (logger *RabbitMqGelf) sendToDestination(msg string, r *http.Request) {
 					URLReferer:   logReferer,
 					UserAgent:    logUserAgent,
 				}
-				fmt.Println(errorToLog)
+				// fmt.Println(errorToLog)
 
 				errorToLogJSON, errJSON := json.Marshal(errorToLog)
 				if errJSON == nil {
