@@ -61,8 +61,8 @@ func Memcache(name string) *MemcacheConnection {
 			memcacheConnections[name] = mcConnection
 		} else {
 			memcacheClient := memcache.New(strings.Join(connectionStrings, ","))
-			memcacheClient.Timeout = 1000 * time.Millisecond // default: 100 * time.Millisecond
-			memcacheClient.MaxIdleConns = 200                // default: 2
+			memcacheClient.Timeout = 2000 * time.Millisecond // default: 100 * time.Millisecond
+			memcacheClient.MaxIdleConns = 1000               // default: 2
 			mcConnection.client = memcacheClient
 			mcConnection.settings = allMemcacheSettings[name]
 			memcacheConnections[name] = mcConnection
