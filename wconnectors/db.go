@@ -93,7 +93,8 @@ func Db(name string) *sql.DB {
 			if err != nil {
 				fmt.Println(err.Error())
 			}
-			dbConnections[name].SetConnMaxLifetime(time.Second)
+			dbConnections[name].SetConnMaxLifetime(time.Minute)
+			dbConnections[name].SetMaxOpenConns(100)
 		} else {
 			dbConnections[name], dbMocks[name], _ = sqlmock.New()
 			err := dbConnections[name].Ping()
