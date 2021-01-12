@@ -2,7 +2,6 @@ package wmiddleware
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/webediads/adsgolib/wcontext"
@@ -16,7 +15,6 @@ func Referer(contextKeyReferer wcontext.Key) func(next http.Handler) http.Handle
 			ctx := r.Context()
 
 			referer := r.Header.Get("Referer")
-			fmt.Println(referer)
 			ctx = context.WithValue(r.Context(), contextKeyReferer, referer)
 
 			next.ServeHTTP(w, r.WithContext(ctx))
