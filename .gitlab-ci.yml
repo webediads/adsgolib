@@ -13,12 +13,16 @@ before_script:
 
 test:
   stage: test
+  tags:
+    - docker
   script:
     - go list -e $(go list -f '{{.Path}}' -m all 2>/dev/null)
     - go test -timeout 300s ./...
 
 build:
   stage: build
+  tags:
+    - docker
   script:
     - git remote show origin
     - git remote set-url --push origin git@github.com:webediads/adsgolib.git

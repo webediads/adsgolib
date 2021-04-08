@@ -130,6 +130,23 @@ func (memcacheConnection MemcacheConnection) Get(key string) ([]byte, error) {
 	}
 }
 
+// Delete stores a value
+func (memcacheConnection MemcacheConnection) Delete(key string) (error) {
+	// if the config is not empty
+	if memcacheConnection.client != nil {
+		err := memcacheConnection.client.Delete(key)
+		if err != nil {
+			if err != memcache.ErrCacheMiss {
+				wlog.GetLogger().Notice("memcache error delete: "+err.Error(), nil, nil)
+			}
+			return err
+		}
+		return nil
+	} else {
+		return nil
+	}
+}
+
 // GetClient returns the original Memcache client
 func (memcacheConnection MemcacheConnection) GetClient() *memcache.Client {
 	return memcacheConnection.client
